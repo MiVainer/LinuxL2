@@ -1,28 +1,32 @@
-# Запуск и дебаг сервиса  
-Копируем файл lf-app.service в каталог /etc/systemd/system.  
-
+### Запуск сервиса
 ##Создаём системного пользователя.  
 `sudo useradd --system --user-group --shell /usr/sbin/nologin lfapp`  
 
 ##Создаём директорию и файлы сервиса, накидываем права  
-```bash
-sudo install -d -m 0750 -o root -g lfapp /opt/lf-app  
-sudo install -d -m 0750 -o root -g lfapp /opt/lf-app/public  
-echo 'Linux Factory working' | sudo tee /opt/lf-app/public/index.html >/dev/null  
-sudo chown root:lfapp /opt/lf-app/public/index.html  
-sudo chmod 0640 /opt/lf-app/public/index.html```  
+`sudo install -d -m 0750 -o root -g lfapp /opt/lf-app  `
+`sudo install -d -m 0750 -o root -g lfapp /etc/lf-app`
 
-##Systemd пересчитывает конфигурационные файлы:  
-`sudo systemctl daemon-reload`  
+Копируем файл lf-app.service в каталог /etc/systemd/system.  
+Копируем файл app.py в каталог /opt/lf-app
+Копируем файл lf-app.env в каталог /etc/lf-app
 
-##Запуск сервиса:  
-`sudo systemctl start lf-app`  
+## Накидываем права
+`sudo chown root:lfapp /opt/lf-app/app.py`
+`sudo chmod 640 /opt/lf-app/app.py`
+`sudo chown root:lfapp /etc/lf-app/lf-app.env`
+`sudo chmod 640 /etc/lf-app/lf-app.env`
 
-##Проверка работоспособности и просмотр логов:  
-`sudo systemctl status lf-app`  
+## Проверяем конфигурацию сервиса и добавляем в автозапуск
+`sudo systemd-analyze verify /etc/systemd/system/lf-app.service`
+`sudo systemctl daemon-reload`
+`sudo systemctl enable --now lf-app`
 
-##Для запуска после перезагрузки выполни:  
-`sudo systemctl enable --now lf-app.service`  
+## Проверяем статус и работу сервиса
+`systemctl is-enable lf-app`
+`systemctl is-active lf-app`
+`curl -f https://localhost:8080`
+`journalctl -u lf-app -n 10 --no-pager`
+
 
 ##Проверяем работает ли сервис:  
 `bash check.sh`  
@@ -30,37 +34,43 @@ sudo chmod 0640 /opt/lf-app/public/index.html```
 если вывело 0 значит все ок.  
 
 
-##Возможные инциденты и пути решения:  
-1. Проблемы с правами на каталогах или файлах сервиса  
-`curl -f http://127.0.0.1:8080` выводит сообщение: curl: (22) The requested URL returned error: 404   
+###Возможные инциденты и пути решения:  
+1. Неверно указан путь к приложению в ExecStart  
+`curl -f http://localhost:8080`
+curl: (7) Failed to connect to localhost port 8080 after 0 ms: В соединении отказано  
 
 ###Диагностика:  
 `systemctl status lf-app --no-pager -l`   
-в логах показывает ошибку 404 файл не найден  
-`namei -l /opt/lf-app/public/index.html`  
-к каталогу public отказано в доступе, проверяем и корректируем права каталога lf-app  
+видим что сервис лежит
+# Указание на ошибку
+journalctl -u lf-app -n 10 --no-pager
+ноя 12 10:27:23 NoutMH lf-app[237614]: /usr/bin/python3: can't open file '/opt/lf-app/1/app.py': [Errno 2] No such file or directory
+
 ###Решение:
-корректируем права доступа  
-`sudo chmod 750 /opt/lf-app/`  
+корректируем размещение файла app.py
+sudo sed -i '/^ExecStart=/ s#=.*#=/usr/bin/python3 /opt/lf-app/app.py#' /etc/systemd/system/lf-app.service
 ###Проверка:  
 `bash check.sh`  
 `echo $?`  
 
-2. Порт занят другим сервисом  
-вывод команды `systemctl status lf-app.service` указывает на то что сервис не работает, и возникли ошибки  
+
+
+
+### 2. Отсутствует или переименован файл lf-app.env  
+вывод команды `systemctl status lf-app` указывает на то что сервис не работает, и возникли ошибки  
 
 ###Диагностика:  
-`pgrep -a -u lfapp python3`  
-вывод пуст  
+`journalctl -u lf-app -n 10 --no-pager`  
+lf-app.service: Failed to load environment files: No such file or directory 
 
-`sudo ss -lntp 'sport = :8080'`   
-указывает что порт 8080 занят другим процессом  
+
+sudo ls -la /etc/lf-app
+проверяем что именно не так с файлом env  
 
 ### Решение:
-`kill PID`  
-мягко уничтожаем процесс  
+sudo mv /etc/lf-app/lf-app.env1 /etc/lf-app/lf-app.env
 
-`systemctl start lf-app.service`  
+`systemctl restart lf-app`  
 оживляем сервис  
 
 ###Проверка:  
