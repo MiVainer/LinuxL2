@@ -1,4 +1,4 @@
-### Запуск сервиса
+# Запуск сервиса
 ##Создаём системного пользователя.  
 `sudo useradd --system --user-group --shell /usr/sbin/nologin lfapp`  
 
@@ -34,7 +34,7 @@
 если вывело 0 значит все ок.  
 
 
-###Возможные инциденты и пути решения:  
+# Возможные инциденты и пути решения:  
 ## 1. Неверно указан путь к приложению в ExecStart  
 `curl -f http://localhost:8080`
 curl: (7) Failed to connect to localhost port 8080 after 0 ms: В соединении отказано  
@@ -42,7 +42,7 @@ curl: (7) Failed to connect to localhost port 8080 after 0 ms: В соедине
 ## Диагностика:  
 `systemctl status lf-app --no-pager -l`   
 видим что сервис лежит
-# Указание на ошибку
+## Указание на ошибку
 journalctl -u lf-app -n 10 --no-pager
 ноя 12 10:27:23 NoutMH lf-app[237614]: /usr/bin/python3: can't open file '/opt/lf-app/1/app.py': [Errno 2] No such file or directory
 
