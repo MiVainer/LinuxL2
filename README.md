@@ -6,9 +6,14 @@
 `sudo install -d -m 0750 -o root -g lfapp /opt/lf-app  `
 `sudo install -d -m 0750 -o root -g lfapp /etc/lf-app`
 
-Копируем файл lf-app.service в каталог /etc/systemd/system.  
+Создаем файл lf-app.env
+`sudo tee /etc/lf-app/lf-app.env >/dev/null <<'EOF'
+PORT=8080
+APP_MESSAGE="Linux Factory работает"
+EOF
+
 Копируем файл app.py в каталог /opt/lf-app
-Копируем файл lf-app.env в каталог /etc/lf-app
+Копируем файл lf-app.service в каталог /etc/systemd/system
 
 ## Накидываем права
 `sudo chown root:lfapp /opt/lf-app/app.py`
@@ -22,9 +27,9 @@
 `sudo systemctl enable --now lf-app`
 
 ## Проверяем статус и работу сервиса
-`systemctl is-enable lf-app`
+`systemctl is-enabled lf-app`
 `systemctl is-active lf-app`
-`curl -f https://localhost:8080`
+`curl -f http://localhost:8080`
 `journalctl -u lf-app -n 10 --no-pager`
 
 
@@ -49,6 +54,10 @@ journalctl -u lf-app -n 10 --no-pager
 ## Решение:
 корректируем размещение файла app.py
 sudo sed -i '/^ExecStart=/ s#=.*#=/usr/bin/python3 /opt/lf-app/app.py#' /etc/systemd/system/lf-app.service
+выполняем команду
+`sudo systemctl daemon-reload`
+`sudo systemctl reset-failed lf-app`
+`sudo systemctl restart lf-app`
 ## Проверка:  
 `bash check.sh`  
 `echo $?`  
