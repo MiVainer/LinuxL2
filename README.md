@@ -13,7 +13,9 @@ APP_MESSAGE="Linux Factory работает"
 EOF
 
 Копируем файл app.py в каталог /opt/lf-app
+`sudo cp app.py /opt/lf-app/`
 Копируем файл lf-app.service в каталог /etc/systemd/system
+`sudo cp lf-app.service /etc/systemd/system/`
 
 ## Накидываем права
 `sudo chown root:lfapp /opt/lf-app/app.py`
@@ -80,6 +82,9 @@ lf-app.service: Failed to load environment files: No such file or directory
 sudo mv /etc/lf-app/lf-app.env1 /etc/lf-app/lf-app.env
 
 `systemctl restart lf-app`  
+`sudo systemctl reset-failed lf-app`
+`sudo systemctl start lf-app.service`
+
 оживляем сервис  
 
 ## Проверка:  
